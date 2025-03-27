@@ -60,7 +60,6 @@ for sitio in sitios_unicos:
         df_filtrado = df_stock[df_stock['Sitio'] == sitio]
         st.dataframe(df_filtrado, use_container_width=True)
 
-# **Botón para refrescar datos manualmente**
-if st.button("🔄 Refrescar datos"):
+
     st.experimental_rerun()
 
