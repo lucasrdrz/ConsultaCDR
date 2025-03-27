@@ -23,18 +23,24 @@ SPREADSHEET_ID = '1uC3qyYAmThXMfJ9Pwkompbf9Zs6MWhuTqT8jTVLYdr0'
 # Función para leer el stock desde Google Sheets
 def leer_stock():
     sheet = service.spreadsheets()
-    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='StockFijo!A:D').execute()
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='StockFijo!A:E').execute()
     values = result.get('values', [])
 
     if not values:
-        return pd.DataFrame(columns=['Sitio', 'Parte', 'Stock Físico', 'Stock Óptimo'])
+        return pd.DataFrame(columns=['Sitio', 'Parte', 'Descripción', 'Stock Físico', 'Stock Óptimo'])
 
     # Convertimos la primera fila en encabezados, eliminando espacios extra
     headers = [h.strip().lower() for h in values[0]]  
     df = pd.DataFrame(values[1:], columns=headers)
 
     # Renombramos las columnas asegurando que coincidan
-    column_map = {'sitio': 'Sitio', 'parte': 'Parte', 'stock': 'Stock Físico', 'stock deberia': 'Stock Óptimo'}
+    column_map = {
+        'sitio': 'Sitio', 
+        'parte': 'Parte', 
+        'descripcion': 'Descripción', 
+        'stock': 'Stock Físico', 
+        'stock deberia': 'Stock Óptimo'
+    }
     df.rename(columns=column_map, inplace=True)
 
     # Convertimos las columnas numéricas correctamente
