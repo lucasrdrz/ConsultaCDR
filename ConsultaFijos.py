@@ -1,58 +1,68 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
+import json
 
-# Configuración de Google Sheets API
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-SERVICE_ACCOUNT_FILE = "credenciales.json"  # Asegúrate de tener este archivo
+# Configurar las credenciales y el servicio de la API de Google Sheets
+def load_credentials():
+    try:
+        SERVICE_ACCOUNT_INFO = st.secrets["GCP_KEY_JSON"]
+        info = json.loads(SERVICE_ACCOUNT_INFO)
+        SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+        credentials = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+        return build('sheets', 'v4', credentials=credentials)
+    except Exception as e:
+        st.error(f"Error al configurar las credenciales: {e}")
+        st.stop()
 
-# ID de la hoja de cálculo
-SPREADSHEET_ID = "TU_SPREADSHEET_ID"
+service = load_credentials()
 
-# Autenticación con Google Sheets API
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
-)
-service = build("sheets", "v4", credentials=credentials)
+SPREADSHEET_ID = '1uC3qyYAmThXMfJ9Pwkompbf9Zs6MWhuTqT8jTVLYdr0'
 
+# Función para leer el stock desde Google Sheets
 def leer_stock():
     sheet = service.spreadsheets()
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='StockFijo!A:D').execute()
-    values = result.get("values", [])
+    values = result.get('values', [])
 
     if not values:
-        return pd.DataFrame(columns=["Sitio", "Parte", "Stock Fisico", "Stock Optimo"])
+        return pd.DataFrame(columns=['Sitio', 'Parte', 'Stock Físico', 'Stock Óptimo'])
 
     # Convertimos la primera fila en encabezados, eliminando espacios extra
-    headers = [h.strip().lower() for h in values[0]]
+    headers = [h.strip().lower() for h in values[0]]  
     df = pd.DataFrame(values[1:], columns=headers)
 
-    # Renombramos las columnas correctamente
-    df.rename(
-        columns={
-            "sitio": "Sitio",
-            "parte": "Parte",
-            "stock": "Stock Fisico",
-            "stock deberia": "Stock Optimo",
-        },
-        inplace=True,
-    )
+    # Renombramos las columnas asegurando que coincidan
+    column_map = {'sitio': 'Sitio', 'parte': 'Parte', 'stock': 'Stock Físico', 'stock deberia': 'Stock Óptimo'}
+    df.rename(columns=column_map, inplace=True)
 
     # Convertimos las columnas numéricas correctamente
-    df["Stock Fisico"] = pd.to_numeric(df["Stock Fisico"], errors="coerce").fillna(0)
-    df["Stock Optimo"] = pd.to_numeric(df["Stock Optimo"], errors="coerce").fillna(0)
+    df['Stock Físico'] = pd.to_numeric(df['Stock Físico'], errors='coerce').fillna(0)
+    df['Stock Óptimo'] = pd.to_numeric(df['Stock Óptimo'], errors='coerce').fillna(0)
 
     return df
 
-# Streamlit App
-st.title("Consulta de Stock")
+# **Interfaz en Streamlit**
+st.title("📦 Control de Stock Fijo - Logística")
 
-# Cargar datos desde Google Sheets
+st.subheader("📍 Selecciona un sitio para ver su stock:")
+
+# Leer el stock una vez para evitar múltiples llamadas a la API
 df_stock = leer_stock()
 
-# Mostrar datos en Streamlit
-st.dataframe(df_stock)
+# Obtener los sitios únicos
+sitios_unicos = sorted(df_stock['Sitio'].unique())
+
+# Crear expanders por cada sitio con solo la vista de datos
+for sitio in sitios_unicos:
+    with st.expander(f"📌 {sitio}", expanded=False):
+        df_filtrado = df_stock[df_stock['Sitio'] == sitio]
+        st.dataframe(df_filtrado, use_container_width=True)
+
+# **Botón para refrescar datos manualmente**
+if st.button("🔄 Refrescar datos"):
+    st.experimental_rerun()
 
 
 
