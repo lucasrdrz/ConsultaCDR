@@ -1,5 +1,4 @@
 import streamlit as st
-import gspread
 import pandas as pd
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -44,5 +43,24 @@ def leer_stock():
 
     return df
 
+# **Interfaz en Streamlit**
+st.title("📦 Control de Stock Fijo - Logística")
 
+st.subheader("📍 Selecciona un sitio para ver su stock:")
+
+# Leer el stock una vez para evitar múltiples llamadas a la API
+df_stock = leer_stock()
+
+# Obtener los sitios únicos
+sitios_unicos = sorted(df_stock['Sitio'].unique())
+
+# Crear expanders por cada sitio con solo la vista de datos
+for sitio in sitios_unicos:
+    with st.expander(f"📌 {sitio}", expanded=False):
+        df_filtrado = df_stock[df_stock['Sitio'] == sitio]
+        st.dataframe(df_filtrado, use_container_width=True)
+
+# **Botón para refrescar datos manualmente**
+if st.button("🔄 Refrescar datos"):
     st.experimental_rerun()
+
