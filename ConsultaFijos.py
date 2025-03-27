@@ -61,5 +61,4 @@ for sitio in sitios_unicos:
         st.dataframe(df_filtrado, use_container_width=True)
 
 
-    st.experimental_rerun()
 
