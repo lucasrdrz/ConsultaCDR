@@ -34,7 +34,8 @@ def leer_stock():
     df = pd.DataFrame(values[1:], columns=headers)
 
     # Renombramos las columnas asegurando que coincidan
-    column_map = {'sitio': 'Sitio', 'parte': 'Parte', 'stock': 'Stock', 'stock deberia': 'Stock Deberia'}
+    column_map = {'sitio': 'Sitio', 'parte': 'Parte', 'stock': 'Stock Fisico', 'stock deberia': 'Stock Optimo'}
+
     df.rename(columns=column_map, inplace=True)
 
     # Convertimos las columnas numéricas correctamente
