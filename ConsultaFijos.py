@@ -29,23 +29,40 @@ def leer_stock():
     if not values:
         return pd.DataFrame(columns=['Sitio', 'Parte', 'Descripción', 'Stock Físico', 'Stock Óptimo'])
 
-    # Convertimos la primera fila en encabezados, eliminando espacios extra
+    # Convertimos la primera fila en encabezados, eliminando espacios extra y pasando a minúsculas
     headers = [h.strip().lower() for h in values[0]]  
+    print("Encabezados originales desde Google Sheets:", headers)
+
     df = pd.DataFrame(values[1:], columns=headers)
 
-    # Renombramos las columnas asegurando que coincidan
+    # Mapear nombres de columnas correctamente
     column_map = {
         'sitio': 'Sitio', 
         'parte': 'Parte', 
-        'descripcion': 'Descripción', 
-        'stock': 'Stock Físico', 
-        'stock deberia': 'Stock Óptimo'
+        'descripción': 'Descripción',  
+        'stock físico': 'Stock Físico',  
+        'stock óptimo': 'Stock Óptimo'  
     }
-    df.rename(columns=column_map, inplace=True)
 
-    # Convertimos las columnas numéricas correctamente
-    df['Stock Físico'] = pd.to_numeric(df['Stock Físico'], errors='coerce').fillna(0)
-    df['Stock Óptimo'] = pd.to_numeric(df['Stock Óptimo'], errors='coerce').fillna(0)
+    # Verificar si todas las claves están en df antes de renombrar
+    columnas_actuales = df.columns.tolist()
+    print("Columnas originales del DataFrame:", columnas_actuales)
+
+    for col in column_map.keys():
+        if col not in columnas_actuales:
+            st.error(f"La columna esperada '{col}' no se encontró en los datos de Google Sheets.")
+            return pd.DataFrame()  # Devuelve un DataFrame vacío si faltan columnas
+
+    df.rename(columns=column_map, inplace=True)
+    print("Columnas después del renombrado:", df.columns.tolist())
+
+    # Convertir columnas numéricas
+    try:
+        df['Stock Físico'] = pd.to_numeric(df['Stock Físico'], errors='coerce').fillna(0)
+        df['Stock Óptimo'] = pd.to_numeric(df['Stock Óptimo'], errors='coerce').fillna(0)
+    except KeyError as e:
+        st.error(f"Error: No se encontró la columna {e} después del renombrado.")
+        return pd.DataFrame()  # Devuelve un DataFrame vacío si falla
 
     return df
 
@@ -57,15 +74,17 @@ st.subheader("📍 Selecciona un sitio para ver su stock:")
 # Leer el stock una vez para evitar múltiples llamadas a la API
 df_stock = leer_stock()
 
-# Obtener los sitios únicos
-sitios_unicos = sorted(df_stock['Sitio'].unique())
+if not df_stock.empty:
+    # Obtener los sitios únicos
+    sitios_unicos = sorted(df_stock['Sitio'].unique())
 
-# Crear expanders por cada sitio con solo la vista de datos
-for sitio in sitios_unicos:
-    with st.expander(f"📌 {sitio}", expanded=False):
-        df_filtrado = df_stock[df_stock['Sitio'] == sitio]
-        st.dataframe(df_filtrado, use_container_width=True)
-
+    # Crear expanders por cada sitio con solo la vista de datos
+    for sitio in sitios_unicos:
+        with st.expander(f"📌 {sitio}", expanded=False):
+            df_filtrado = df_stock[df_stock['Sitio'] == sitio]
+            st.dataframe(df_filtrado, use_container_width=True)
+else:
+    st.error("No se pudo cargar el stock. Verifica los nombres de las columnas en Google Sheets.")
 
 
 
